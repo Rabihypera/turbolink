@@ -197,8 +197,7 @@ protected:
 
 protected:
 	void OnRpcEventInternal(bool Ok, const void* EventTag, 
-		typename Super::FRpcCallbackFunc RpcCallbackFunc, 
-		typename FSendCompleteCallbackFunc SendCompleteCallbackFunc)
+		typename Super::FRpcCallbackFunc RpcCallbackFunc, FSendCompleteCallbackFunc SendCompleteCallbackFunc)
 	{
 		if (!Ok)
 		{
@@ -289,8 +288,7 @@ protected:
 
 protected:
 	void OnRpcEventInternal(bool Ok, const void* EventTag, 
-		typename Super::FRpcCallbackFunc RpcCallbackFunc,
-		typename FSendCompleteCallbackFunc SendCompleteCallbackFunc)
+		typename Super::FRpcCallbackFunc RpcCallbackFunc, FSendCompleteCallbackFunc SendCompleteCallbackFunc)
 	{
 		if (!Ok)
 		{

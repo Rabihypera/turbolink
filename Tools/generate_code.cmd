@@ -13,18 +13,20 @@ if not exist %INPUT_PROTO_FILE% (
 )
 
 ::make sure output path exist
-set OUTPUT_PATH=%2
-if not exist %OUTPUT_PATH% (
-	echo Output path '%OUTPUT_PATH%' not exist!
-	pause
-	exit /b 1
-)
+@REM set OUTPUT_PATH=%2
+@REM if not exist %OUTPUT_PATH% mkdir %OUTPUT_PATH%
+@REM if not exist %OUTPUT_PATH% (
+@REM 	echo Output path '%OUTPUT_PATH%' not exist!
+@REM 	pause
+@REM 	exit /b 1
+@REM )
 
 ::get turbolink plugin path
 pushd %~dp0\..
 set TL_UE_PLUGIN_PATH=%cd%
 popd
 
+set OUTPUT_PATH=%TL_UE_PLUGIN_PATH%\Tools\output
 set TURBOLINK_PLUGIN_PATH=%TL_UE_PLUGIN_PATH%\Tools\protoc-gen-turbolink.exe
 set PROTOC_EXE_PATH=%TL_UE_PLUGIN_PATH%\Source\ThirdParty\protobuf\bin\protoc.exe
 set PROTOBUF_INC_PATH=%TL_UE_PLUGIN_PATH%\Source\ThirdParty\protobuf\include
@@ -32,7 +34,10 @@ set GRPC_CPP_PLUGIN_EXE_PATH=%TL_UE_PLUGIN_PATH%\Source\ThirdParty\grpc\bin\grpc
 set FIX_PROTO_CPP=%TL_UE_PLUGIN_PATH%\Tools\fix_proto_cpp.txt
 set FIX_PROTO_H=%TL_UE_PLUGIN_PATH%\Tools\fix_proto_h.txt
 set CPP_OUTPUT_PATH=%OUTPUT_PATH%\Private\pb
+set GO_OUTPUT_PATH=%OUTPUT_PATH%\go
 if not exist %CPP_OUTPUT_PATH% mkdir %CPP_OUTPUT_PATH%
+if not exist %GO_OUTPUT_PATH% mkdir %GO_OUTPUT_PATH%
+if not exist %OUTPUT_PATH% mkdir %OUTPUT_PATH%
 
 :: Print Variables for debugging
 echo Input proto file: %INPUT_PROTO_FILE%
@@ -45,6 +50,7 @@ echo GRPC_CPP_PLUGIN_EXE_PATH=%GRPC_CPP_PLUGIN_EXE_PATH%
 echo FIX_PROTO_CPP=%FIX_PROTO_CPP%
 echo FIX_PROTO_H=%FIX_PROTO_H%
 echo CPP_OUTPUT_PATH=%CPP_OUTPUT_PATH%
+echo GO_OUTPUT_PATH=%GO_OUTPUT_PATH%
 
 echo Checking existence of files or directories...
 
@@ -69,6 +75,12 @@ if !errorFlag! equ 1 (
 ::call protoc.exe
 "%PROTOC_EXE_PATH%" ^
  --proto_path="%PROTOBUF_INC_PATH%" --proto_path="%INPUT_PROTO_PATH%" ^
+ --go_out="%GO_OUTPUT_PATH%" ^
+ --go_opt="paths=source_relative" ^
+ %INPUT_PROTO_FILE%
+
+"%PROTOC_EXE_PATH%" ^
+ --proto_path="%PROTOBUF_INC_PATH%" --proto_path="%INPUT_PROTO_PATH%" ^
  --cpp_out="%CPP_OUTPUT_PATH%" ^
  --plugin=protoc-gen-grpc="%GRPC_CPP_PLUGIN_EXE_PATH%" --grpc_out=%CPP_OUTPUT_PATH% ^
  --plugin=protoc-gen-turbolink="%TURBOLINK_PLUGIN_PATH%" --turbolink_out="%OUTPUT_PATH%" ^
@@ -79,7 +91,7 @@ if !errorFlag! equ 1 (
 call :FixCompileWarning "%FIX_PROTO_H%" %CPP_OUTPUT_PATH%\%INPUT_PROTO_FILE% "pb.h"
 call :FixCompileWarning "%FIX_PROTO_CPP%" %CPP_OUTPUT_PATH%\%INPUT_PROTO_FILE% "pb.cc"
 goto :eof
-
+ 
 :FixCompileWarning
 set FIX_FILE=%1
 set FILE_PATH=%~p2

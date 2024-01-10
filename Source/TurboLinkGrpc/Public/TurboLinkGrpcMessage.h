@@ -28,6 +28,40 @@ bool StructName::FromJsonString(const FString& JsonString) \
 	return true; \
 }
 
+#define DECLARE_SERIALIZE_FUNCTIONS() \
+	TURBOLINKGRPC_API virtual TArray<uint8> ToBytes() const override; \
+	TURBOLINKGRPC_API virtual bool FromBytes(const TArray<uint8>& Bytes) override;
+
+#define DEFINE_SERIALIZE_FUNCTIONS(StructName, GrpcStructName) \
+TArray<uint8> StructName::ToBytes() const \
+{ \
+	GrpcStructName message; \
+	TURBOLINK_TO_GRPC(this, &message); \
+	std::string output; \
+	if(message.SerializeToString(&output)) { \
+		FString InStr = FString(UTF8_TO_TCHAR(output.c_str())); \
+		FTCHARToUTF8 Convert(*InStr); \
+		int BytesLength = Convert.Length(); \
+		uint8* messageBytes = static_cast<uint8*>(FMemory::Malloc(BytesLength)); \
+		FMemory::Memcpy(messageBytes, (uint8*)TCHAR_TO_UTF8(InStr.GetCharArray().GetData()), BytesLength); \
+		TArray<uint8> result; \
+		for (int i = 0; i < BytesLength; i++) { \
+			result.Add(messageBytes[i]); \
+		} \
+		FMemory::Free(messageBytes); \
+		return result; \
+	} \
+	return {}; \
+} \
+bool StructName::FromBytes(const TArray<uint8>& Bytes) \
+{ \
+	GrpcStructName grpcMessage; \
+	const std::string Str(reinterpret_cast<const char*>(Bytes.GetData()), Bytes.Num());	\
+	if(!grpcMessage.ParseFromString(Str)) return false; \
+	GRPC_TO_TURBOLINK(&grpcMessage, this); \
+	return true; \
+}
+
 USTRUCT(BlueprintType)
 struct FGrpcMessage
 {
@@ -36,7 +70,11 @@ struct FGrpcMessage
 
 	virtual FString ToJsonString(bool bPrettyMode) const { return FString(TEXT("{}")); }
 	virtual bool FromJsonString(const FString& JsonString) { return false; }
+	
+	virtual TArray<uint8> ToBytes() const { return {}; }
+	virtual bool FromBytes(const TArray<uint8>& Bytes) { return false; }
 };
+
 
 USTRUCT(BlueprintType, meta = (
 	HasNativeMake = "TurboLinkGrpc.TurboLinkGrpcUtilities.MakeUInt64", 
